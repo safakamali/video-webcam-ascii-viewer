@@ -1,29 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video to ASCII</title>
-    <link rel="stylesheet" href="/public/styles.css">
-  </head>
-  <body class="stage-curtain">
-    <main>
-      <h1>Video to ASCII</h1>
+    <title>Video to Colored ASCII Art Converter</title>
+    <style>
+        * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #ascii-art {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 8px; 
+        }
 
-      <section class="warning">
-      </section>
+        .ascii-char {
+            display: inline-block;
+            width: 8px; 
+            height: 8px; 
+            line-height: 8px; 
+        }
 
-      <section class="photo-booth">
-        <div class="camera">
-          <video controls width="400" height="300"></video>
-        </div>
+        button, input[type="file"] {
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgb(201, 201, 201) inset;
+            border-radius: 10px;
+        }
 
-        <div class="ascii-video">
-          <pre></pre>
-        </div>
-      </section>
-    </main>
 
-    <script src="/public/script.js"></script>
-  </body>
+    </style>
+</head>
+<body dir="rtl">
+    <h1>Video to Colored ASCII Art Converter</h1>
+    <span style="color: red;">To view another video reload the page</span><br><br>
+    <span>Load the video: </span>
+    <input type="file" id="videoInput" accept="video/*" onchange="handleVideo()">
+    <button onclick="exportFramesToFile()">Download the export</button>
+    <button onclick="importFramesFromFile()">Import from a export file</button>
+    <div id="ascii-art"></div>
+    <a href="http://safakamali.ir" target="_blank"><h2>Created by Mohammad Safa Kamali: safakamali.ir</h2></a>
+    <script>
+        const asciiArtDiv = document.getElementById('ascii-art');
+        const videoInput = document.getElementById('videoInput');
+        let exportFrames = [];
+
+        function handleVideo() {
+            const file = videoInput.files[0];
+
+            if (file) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.play();
+
+                video.addEventListener('play', function () {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 50;
+                    canvas.height = 50;
+
+                    setInterval(function () {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        const asciiArt = convertToColoredAscii(imageData, canvas.width);
+
+                        exportFrames.push(imageData);
+
+                        asciiArtDiv.innerHTML = asciiArt;
+                    }, 100); // Update every 100 milliseconds
+                });
+            }
+        }
+
+        function convertToColoredAscii(imageData, width) {
+            const asciiChars = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.'];
+            let asciiArt = '';
+            let _length;
+            if ((typeof imageData[0])=='number') {
+                _length = Object.keys(imageData).length
+            } else {
+                _length = imageData.length
+            }
+
+            for (let i = 0; i < _length; i += 4) {
+                const avgBrightness = (imageData[i] + imageData[i + 1] + imageData[i + 2]) / 3;
+                const asciiIndex = Math.round((avgBrightness / 255) * (asciiChars.length - 1));
+                const color = `rgb(${imageData[i]}, ${imageData[i + 1]}, ${imageData[i + 2]})`;
+                const span = `<span class="ascii-char" style="background-color: ${color};">${asciiChars[asciiIndex]}</span>`;
+
+                asciiArt += span;
+
+                if ((i / 4) % width === 0 && i !== 0) {
+                    asciiArt += '<br>';
+                }
+            }
+
+            return asciiArt;
+        }
+
+        function exportFramesToFile() {
+            const blob = new Blob([JSON.stringify(exportFrames)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'exportedFrames.json';
+            link.click();
+        }
+
+        function importFramesFromFile() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.addEventListener('change', handleImportFile);
+            fileInput.click();
+        }
+
+        function handleImportFile(event) {
+            const fileInput = event.target;
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        exportFrames = JSON.parse(e.target.result);
+                        playImportedFrames();
+                        alert('Frames imported successfully!');
+                    } catch (error) {
+                        alert(error)
+                        alert('Error importing frames. Please make sure the file is a valid JSON.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function playImportedFrames() {
+            let frameIndex = 0;
+
+            function renderNextFrame() {
+                if (frameIndex < exportFrames.length) {
+                    const imageData = exportFrames[frameIndex];
+                    const asciiArt = convertToColoredAscii(imageData, 50);
+                    asciiArtDiv.innerHTML = asciiArt;
+                    frameIndex++;
+
+                    if (frameIndex < exportFrames.length) {
+                        setTimeout(renderNextFrame, 100);
+                    }
+                }
+            }
+
+            renderNextFrame();
+        }
+    </script>
+</body>
 </html>

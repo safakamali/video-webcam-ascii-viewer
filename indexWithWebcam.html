@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Colored ASCII Art Converter</title>
+    <style>
+        * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #ascii-art {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 8px; 
+        }
+
+        .ascii-char {
+            display: inline-block;
+            width: 8px; 
+            height: 8px; 
+            line-height: 8px; 
+        }
+
+        button, input[type="file"] {
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgb(201, 201, 201) inset;
+            border-radius: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Live webcam ascii viewer</h1>
+    <div id="ascii-art"></div>
+    <a href="http://safakamali.ir" target="_blank"><h2>Designed By Mohammad Safa Kamali: safakamali.ir</h2></a>
+
+    <script>
+        const asciiArtDiv = document.getElementById('ascii-art');
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                video.addEventListener('play', function () {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 50;
+                    canvas.height = 50;
+
+                    setInterval(function () {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        const asciiArt = convertToColoredAscii(imageData, canvas.width);
+
+                        asciiArtDiv.innerHTML = asciiArt;
+                    }, 100); // Update every 100 milliseconds
+                });
+            } catch (error) {
+                console.error('Error accessing the camera:', error);
+            }
+        }
+
+        function convertToColoredAscii(imageData, width) {
+            const asciiChars = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.'];
+            let asciiArt = '';
+
+            for (let i = 0; i < imageData.length; i += 4) {
+                const avgBrightness = (imageData[i] + imageData[i + 1] + imageData[i + 2]) / 3;
+                const asciiIndex = Math.round((avgBrightness / 255) * (asciiChars.length - 1));
+                const color = `rgb(${imageData[i]}, ${imageData[i + 1]}, ${imageData[i + 2]})`;
+                const span = `<span class="ascii-char" style="background-color: ${color};">${asciiChars[asciiIndex]}</span>`;
+
+                asciiArt += span;
+
+                if ((i / 4) % width === 0 && i !== 0) {
+                    asciiArt += '<br>';
+                }
+            }
+
+            return asciiArt;
+        }
+
+        startCamera();
+    </script>
+</body>
+</html>
