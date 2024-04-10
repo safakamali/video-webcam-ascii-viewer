@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang=en>
+
+<head>
+    <meta charset=UTF-8>
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>Live Colored ASCII Art Converter</title>
+    <style>
+        * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
+        }
+
+        #ascii-art {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 8px
+        }
+
+        .ascii-char {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            line-height: 8px
+        }
+
+        button,
+        input[type=file] {
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 0 10px #c9c9c9 inset;
+            border-radius: 10px;
+            padding: 10px 50px
+        }
+
+        button:hover {
+            background-color: #06f;
+            color: #fff;
+            box-shadow: none;
+            transition-duration: .2s
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live webcam ascii viewer</h1>
+    <label>Background Color: <input type=checkbox id=backgroundColor></label><br>
+    <label>Frame Delay: <input type=range id=frameDelay min=50 max=1000 value=300
+            onchange="frameDelayViewer.innerText=frameDelay.value"><span id=frameDelayViewer>300</span></label>
+    <p>
+        <button id=startButton onclick=startCamera()>Start</button></p>
+    <div id=ascii-art></div>
+    <a href=http://safakamali.ir target=_blank id=s>
+        <h2>Designed By Mohammad Safa Kamali: safakamali.ir</h2>
+    </a>
+    <script>
+        const asciiArtDiv = document.getElementById("ascii-art"),
+            isOnBackgroundColor = document.getElementById("backgroundColor"),
+            frameDelay = document.getElementById("frameDelay"),
+            frameDelayViewer = document.getElementById("frameDelayViewer");
+        async function startCamera() {
+            try {
+                let e = await navigator.mediaDevices.getUserMedia({
+                        video: !0
+                    }),
+                    t = document.createElement("video");
+                t.srcObject = e, t.play(), t.addEventListener("play", function () {
+                    let e = document.createElement("canvas"),
+                        a = e.getContext("2d");
+                    e.width = 50, e.height = 50, setInterval(function () {
+                        a.drawImage(t, 0, 0, e.width, e.height);
+                        let r = a.getImageData(0, 0, e.width, e.height).data,
+                            i = convertToColoredAscii(r, e.width);
+                        asciiArtDiv.innerHTML = i
+                    }, frameDelay.value)
+                })
+            } catch (a) {
+                console.error("Error accessing the camera:", a)
+            }
+        }
+
+        function convertToColoredAscii(e, t) {
+            let a = ["@", "#", "S", "%", "?", "*", "+", ";", ":", ",", "."],
+                r = "",
+                i = "";
+            isOnBackgroundColor.checked && (i = "background-color: {color};");
+            for (let c = 0; c < e.length; c += 4) {
+                let n = (e[c] + e[c + 1] + e[c + 2]) / 3,
+                    o = Math.round(n / 255 * (a.length - 1)),
+                    l = `rgb(${e[c]}, ${e[c+1]}, ${e[c+2]})`,
+                    d = `<span class="ascii-char" style="${i.replace("{color}",l)}">${a[o]}</span>`;
+                r += d, c / 4 % t == 0 && 0 !== c && (r += "<br>")
+            }
+            return r
+        }
+        const unicodeText =
+            "\u0044\u0065\u0073\u0069\u0067\u006e\u0065\u0064\u0020\u0042\u0079\u0020\u004d\u006f\u0068\u0061\u006d\u006d\u0061\u0064\u0020\u0053\u0061\u0066\u0061\u0020\u004b\u0061\u006d\u0061\u006c\u0069\u003a\u0020\u0073\u0061\u0066\u0061\u006b\u0061\u006d\u0061\u006c\u0069\u002e\u0069\u0072";
+        const decodedText = unicodeText.replace(/\\u[\dA-F]{4}/gi, match =>
+            String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
+        );
+        document.getElementById("s").innerText = decodedText;
+        (function () {
+        (function a() {
+            try {
+                (function b(i) {
+                    if (('' + (i / i)).length !== 1 || i % 20 === 0) {
+                        (function () { }).constructor('debugger')()
+                    } else {
+                        debugger
+                    }
+                    b(++i)
+                }
+                )(0)
+            } catch (e) {
+                setTimeout(a, 5000)
+            }
+        }
+        )()
+    }
+    )();
+
+    </script>
+
+</body>
+
+</html>
